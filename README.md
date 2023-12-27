@@ -139,7 +139,6 @@ ROM files can be placed in `./gym_mupen64plus/ROMs/`. If you wish to place them 
 Here is a list of games that have been wrapped. Each game may support multiple 'modes' with different levels or missions configured. See each of the games' pages for more details.
 * [MarioKart64](gym_mupen64plus/envs/MarioKart64/README.md)
 * [Super Smash Bros](gym_mupen64plus/envs/Smash/README.md)
-* [Space Invaders](gym_mupen64plus/envs/SpaceInvaders/README.md)
 
 <br/>
 
