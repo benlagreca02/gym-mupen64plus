@@ -39,13 +39,13 @@ services:
       '--nospeedlimit',
       '--nosaveoptions',
       '--resolution', '640x480',
-      '--gfx', 'mupen64plus-video-glide64.so',
+      '--gfx', 'mupen64plus-video-rice.so',
       '--audio', 'dummy',
       '--input', '/usr/local/lib/mupen64plus/mupen64plus-input-bot.so',
       '--set', 'Input-Bot-Control0[plugged]=1',
       '--set', 'Input-Bot-Control0[host]=agent',
       '--set', 'Input-Bot-Control0[port]=8082',
-      '/src/gym-mupen64plus/gym_mupen64plus/ROMs/marioKart.n64'
+      '/src/gym-mupen64plus/gym_mupen64plus/ROMs/marioKart.n64'  # the rom to open
     ]
     depends_on: [ xvfbsrv, agent ]
 
@@ -58,5 +58,9 @@ services:
     environment:
       - DISPLAY=xvfbsrv:0
       - EXTERNAL_EMULATOR=True
+    volumes:
+      - type: bind
+        source: "${LOCAL_ROM_PATH}" # Since ROMs are not included in the image, bind mount a local path (set this value in the .env file)
+        target: /src/gym-mupen64plus/gym_mupen64plus/ROMs
     command: [ 'python3', '-u', 'gym-mupen64plus/example.py' ] # -u for unbuffered output so logs show immediately (in theory)
     depends_on: [ xvfbsrv ]

@@ -37,14 +37,12 @@ RUN apt-get update && \
 # (explicitly specifying commit hash to attempt to guarantee behavior within this container)
 WORKDIR /src/mupen64plus-src
 RUN git clone https://github.com/mupen64plus/mupen64plus-core && \
-        # cd mupen64plus-core && \
-        # use latest core version
-        # git reset --hard 12d136dd9a54e8b895026a104db7c076609d11ff && \
-    # cd .. && \
+        cd mupen64plus-core && \
+        git reset --hard 12d136dd9a54e8b895026a104db7c076609d11ff && \
+    cd .. && \
     git clone https://github.com/kevinhughes27/mupen64plus-input-bot && \
         cd mupen64plus-input-bot && \
-        # use latest version
-        # git reset --hard 0a1432035e2884576671ef9777a2047dc6c717a2 && \
+        git reset --hard 0a1432035e2884576671ef9777a2047dc6c717a2 && \
     make all && \
     make install
 

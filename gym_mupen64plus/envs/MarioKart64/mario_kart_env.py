@@ -45,12 +45,20 @@ class MarioKartEnv(Mupen64PlusEnv):
         super(MarioKartEnv, self).__init__()
 
         self.end_race_pixel_color = self.END_RACE_PIXEL_COLORS[self.config["GFX_PLUGIN"]]
-        
-        self.action_space = spaces.MultiDiscrete([[-80, 80],  # Joystick X-axis
-                                                  [-80, 80],  # Joystick Y-axis
-                                                  [  0,  1],  # A Button
-                                                  [  0,  1],  # B Button
-                                                  [  0,  1]]) # RB Button
+
+        # formerly array of arrays like
+        # [ [-80, 80], [0,1] ] for joysticks and button
+
+        # this overrides the default action space provided by Mupen64PlusEnv
+        # Mario Kart only needs, A, B, and RB (drive brake and drift) as well as
+        # the joystick
+        # NOTE: CHANGING THIS MAKES THE ACTION SPACE LARGER, FROM 160-256
+        # POSSIBILITIES, COULD BREAK SOME THINGS
+        self.action_space = spaces.MultiDiscrete([256,  # Joystick X-axis
+                                                  256,  # Joystick Y-axis
+                                                  2,  # A Button
+                                                  2,  # B Button
+                                                  2]) # RB Button
 
     def _load_config(self):
         self.config.update(yaml.safe_load(open(os.path.join(os.path.dirname(inspect.stack()[0][1]), "mario_kart_config.yml"))))
@@ -61,11 +69,15 @@ class MarioKartEnv(Mupen64PlusEnv):
         if gfx_plugin not in self.END_RACE_PIXEL_COLORS:
             raise AssertionError("Video Plugin '" + gfx_plugin + "' not currently supported by MarioKart environment")
 
-    def _step(self, action):
+    def step(self, action):
         # Interpret the action choice and get the actual controller state for this step
+        # i.e. converts "mario kart" ocntrols (only joystick and 3 buttons)
+        # into real n64 controls (all the buttons)
+
+        # padd out the rest of the buttons
         controls = action + [  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
 
-        return super(MarioKartEnv, self)._step(controls)
+        return super(MarioKartEnv, self).step(controls)
 
     def _reset_after_race(self):
         self._wait(count=275, wait_for='times screen')
@@ -84,7 +96,7 @@ class MarioKartEnv(Mupen64PlusEnv):
         self._press_button(ControllerState.A_BUTTON)
         self._wait(count=76, wait_for='race to load')
 
-    def _reset(self):
+    def reset(self):
         
         self.lap = 1
         self.step_count_at_lap = 0
@@ -105,7 +117,7 @@ class MarioKartEnv(Mupen64PlusEnv):
                 else:
                     self._reset_during_race()
 
-        return super(MarioKartEnv, self)._reset()
+        return super(MarioKartEnv, self).reset()
 
     def _get_reward(self):
         #cprint('Get Reward called!','yellow')
@@ -193,6 +205,7 @@ class MarioKartEnv(Mupen64PlusEnv):
             y_val = max_y - i*2
             yield [(x_val, y_val), (x_val + 1, y_val), (x_val, y_val + 1), (x_val + 1, y_val + 1)]
 
+
     def _get_current_checkpoint(self):
         checkpoint_values = [self._evaluate_checkpoint(points)
                              for points in self.CHECKPOINT_LOCATIONS]
@@ -222,12 +235,14 @@ class MarioKartEnv(Mupen64PlusEnv):
             # We haven't hit any checkpoint yet :(
             return -1
 
+
     # https://stackoverflow.com/a/3844948
     # Efficiently determines if all items in a list are equal by 
     # counting the occurrences of the first item in the list and 
     # checking if the count matches the length of the list:
     def all_equal(self, some_list):
         return some_list.count(some_list[0]) == len(some_list)
+
 
     def _evaluate_checkpoint(self, checkpoint_points):
         checkpoint_pixels = [IMAGE_HELPER.GetPixelColor(self.pixel_array, point[0], point[1])
@@ -245,9 +260,11 @@ class MarioKartEnv(Mupen64PlusEnv):
         else:
             return self.HUD_PROGRESS_COLOR_VALUES[checkpoint_pixels[0]]
 
+
     def _evaluate_end_state(self):
         #cprint('Evaluate End State called!','yellow')
         return self.end_race_pixel_color == IMAGE_HELPER.GetPixelColor(self.pixel_array, 203, 51)
+
 
     def _navigate_menu(self):
         self._wait(count=10, wait_for='Nintendo screen')
@@ -272,6 +289,7 @@ class MarioKartEnv(Mupen64PlusEnv):
 
         # Now that we have the HUD as needed, reset the race so we have a consistent starting frame:
         self._reset_during_race()
+
 
     def _navigate_game_select(self):
         # Select number of players (1 player highlighted by default)

@@ -81,7 +81,7 @@ class Mupen64PlusEnv(gym.Env):
         # If the EXTERNAL_EMULATOR environment variable is True, we are running the
         # emulator out-of-process (likely via docker/docker-compose). If not, we need
         # to start the emulator in-process here
-        external_emulator = os.environ.has_key("EXTERNAL_EMULATOR") and os.environ["EXTERNAL_EMULATOR"] == 'True'
+        external_emulator = ("EXTERNAL_EMULATOR" in os.environ) and os.environ["EXTERNAL_EMULATOR"] == 'True'
         if not external_emulator:
             self.xvfb_process, self.emulator_process = \
                 self._start_emulator(rom_name=self.config['ROM_NAME'],
@@ -108,23 +108,46 @@ class Mupen64PlusEnv(gym.Env):
         self.observation_space = \
             spaces.Box(low=0, high=255, shape=(SCR_H, SCR_W, SCR_D))
 
-        self.action_space = spaces.MultiDiscrete([[-80, 80], # Joystick X-axis
-                                                  [-80, 80], # Joystick Y-axis
-                                                  [  0,  1], # A Button
-                                                  [  0,  1], # B Button
-                                                  [  0,  1], # RB Button
-                                                  [  0,  1], # LB Button
-                                                  [  0,  1], # Z Button
-                                                  [  0,  1], # C Right Button
-                                                  [  0,  1], # C Left Button
-                                                  [  0,  1], # C Down Button
-                                                  [  0,  1], # C Up Button
-                                                  [  0,  1], # D-Pad Right Button
-                                                  [  0,  1], # D-Pad Left Button
-                                                  [  0,  1], # D-Pad Down Button
-                                                  [  0,  1], # D-Pad Up Button
-                                                  [  0,  1], # Start Button
+        # was formerly -80, 80
+        # self.action_space = spaces.MultiDiscrete([[-80, 80], # Joystick X-axis
+        #                                           [-80, 80], # Joystick Y-axis
+        #                                           [  0,  1], # A Button
+        #                                           [  0,  1], # B Button
+        #                                           [  0,  1], # RB Button
+        #                                           [  0,  1], # LB Button
+        #                                           [  0,  1], # Z Button
+        #                                           [  0,  1], # C Right Button
+        #                                           [  0,  1], # C Left Button
+        #                                           [  0,  1], # C Down Button
+        #                                           [  0,  1], # C Up Button
+        #                                           [  0,  1], # D-Pad Right Button
+        #                                           [  0,  1], # D-Pad Left Button
+        #                                           [  0,  1], # D-Pad Down Button
+        #                                           [  0,  1], # D-Pad Up Button
+        #                                           [  0,  1], # Start Button
+        #                                          ])
+
+
+        # arg is array of number of states 
+        self.action_space = spaces.MultiDiscrete([256, # Joystick X-axis
+                                                  256, # Joystick Y-axis
+                                                  2, # A Button
+                                                  2, # B Button
+                                                  2, # RB Button
+                                                  2, # LB Button
+                                                  2, # Z Button
+                                                  2, # C Right Button
+                                                  2, # C Left Button
+                                                  2, # C Down Button
+                                                  2, # C Up Button
+                                                  2, # D-Pad Right Button
+                                                  2, # D-Pad Left Button
+                                                  2, # D-Pad Down Button
+                                                  2, # D-Pad Up Button
+                                                  2, # Start Button
                                                  ])
+
+
 
     def _base_load_config(self):
         self.config = yaml.safe_load(open(os.path.join(os.path.dirname(inspect.stack()[0][1]), "config.yml")))
@@ -145,8 +168,7 @@ class Mupen64PlusEnv(gym.Env):
     def _validate_config(self):
         return
 
-    def _step(self, action):
-        #cprint('Step %i: %s' % (self.step_count, action), 'green')
+    def step(self, action):
         self._act(action)
         obs = self._observe()
         self.episode_over = self._evaluate_end_state()
@@ -168,8 +190,6 @@ class Mupen64PlusEnv(gym.Env):
             self._act(ControllerState.NO_OP) # and release
 
     def _observe(self):
-        #cprint('Observe called!', 'yellow')
-
         if self.config['USE_XVFB']:
             offset_x = 0
             offset_y = 0
@@ -205,7 +225,6 @@ class Mupen64PlusEnv(gym.Env):
 
     @abc.abstractmethod
     def _reset(self):
-        cprint('Reset called!', 'yellow')
         self.reset_count += 1
 
         self.step_count = 0
@@ -227,7 +246,6 @@ class Mupen64PlusEnv(gym.Env):
             self.viewer.imshow(img)
 
     def _close(self):
-        cprint('Close called!', 'yellow')
         self.running = False
         self._kill_emulator()
         self._stop_controller_server()
@@ -367,23 +385,23 @@ class EmulatorMonitor:
 class ControllerState(object):
 
     # Controls           [ JX,  JY,  A,  B, RB, LB,  Z, CR, CL, CD, CU, DR, DL, DD, DU,  S]
-    NO_OP              = [  0,   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    START_BUTTON       = [  0,   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1]
-    A_BUTTON           = [  0,   0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    B_BUTTON           = [  0,   0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    RB_BUTTON          = [  0,   0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    CR_BUTTON          = [  0,   0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0]
-    CL_BUTTON          = [  0,   0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0]
-    CD_BUTTON          = [  0,   0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0]
-    CU_BUTTON          = [  0,   0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0]
-    JOYSTICK_UP        = [  0,  127, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    JOYSTICK_DOWN      = [  0, -128, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    JOYSTICK_LEFT      = [-128,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    JOYSTICK_RIGHT     = [ 127,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    NO_OP              = [128, 128,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    START_BUTTON       = [128, 128,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1]
+    A_BUTTON           = [128, 128,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    B_BUTTON           = [128, 128,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    RB_BUTTON          = [128, 128,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    CR_BUTTON          = [128, 128,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0]
+    CL_BUTTON          = [128, 128,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0]
+    CD_BUTTON          = [128, 128,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0]
+    CU_BUTTON          = [128, 128,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0]
+    JOYSTICK_UP        = [128, 255,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    JOYSTICK_DOWN      = [128,   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    JOYSTICK_LEFT      = [  0, 128,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+    JOYSTICK_RIGHT     = [255, 128,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
 
     def __init__(self, controls=NO_OP):
-        self.X_AXIS = controls[0]
-        self.Y_AXIS = controls[1]
+        self.X_AXIS = controls[0] - 128
+        self.Y_AXIS = controls[1] - 128
         self.A_BUTTON = controls[2]
         self.B_BUTTON = controls[3]
         self.R_TRIG = controls[4]
