@@ -50,7 +50,7 @@ def main():
         (obs, rew, end, info) = env.step([0, 0, 0, 0, 0, 0, 0, 0])
         env.render()
 
-    raw_input("Press <enter> to exit... ")
+    input("Press <enter> to exit... ")
 
     env.close()
 

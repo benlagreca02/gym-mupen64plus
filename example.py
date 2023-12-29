@@ -26,6 +26,6 @@ for i in range(10000):
     (obs, rew, end, info) = env.step([0, 0, 1, 0, 0]) # Hard-left doughnuts!
     (obs, rew, end, info) = env.step([0, 0, 0, 0, 0]) # Hard-left doughnuts!
 
-raw_input("Press <enter> to exit... ")
+input("Press <enter> to exit... ")
 env.close()
 
